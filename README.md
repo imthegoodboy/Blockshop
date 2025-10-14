@@ -57,10 +57,5 @@ Notes & next steps for production
 - Use a secure storage provider and ensure server-side upload endpoints keep keys secret.
 - Consider adding end-to-end tests for purchase and download flows and automated contract verification on the desired network.
 
-Contributing
-If you'd like to help, open an issue or a pull request. Please follow the repository code style and add tests for new features.
 
-License
-This project is open-source — include your preferred license here  .
 
-Thank you for checking out BlockShop — a simple way to buy and sell digital goods in a more open, user-controlled way.
