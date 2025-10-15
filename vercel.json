@@ -1,16 +1,12 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "web/package.json",
-      "use": "@vercel/next"
+  "buildCommand": "cd web && npm run build",
+  "outputDirectory": "web/.next",
+  "installCommand": "cd web && npm install",
+  "framework": "nextjs",
+  "functions": {
+    "web/src/app/api/**/*.ts": {
+      "runtime": "nodejs18.x"
     }
-  ],
-  "routes": [
-    { "src": "/(.*)", "dest": "/web/$1" }
-  ],
-  "github": {
-    "installCommand": "cd web && npm install",
-    "buildCommand": "cd web && npm run build"
   }
 }
