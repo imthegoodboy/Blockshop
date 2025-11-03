@@ -7,6 +7,12 @@ services:
     plan: free
     buildCommand: cd web && npm ci && npm run build
     startCommand: cd web && npm run start
-    envVars: []
+    envVars:
+      - key: NODE_VERSION
+        value: 20.12.2
+      - key: NEXT_PUBLIC_CHAIN
+        value: amoy
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"
     mountPoints: []
     autoDeploy: true
