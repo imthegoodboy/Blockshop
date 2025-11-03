@@ -14,6 +14,7 @@ export default function ProductDetail() {
   const [metadata, setMetadata] = useState<any>(null);
   const [downloading, setDownloading] = useState(false);
   const [recs, setRecs] = useState<any[]>([]);
+  const [fav, setFav] = useState(false);
 
   useEffect(() => {
     if (!cid) return;
@@ -33,6 +34,18 @@ export default function ProductDetail() {
       } catch {}
     })();
   }, [cid]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        if (!address || !cid) return;
+        const res = await fetch(`/api/favorites?address=${address}`);
+        const json = await res.json();
+        const set = new Set((json.items || []).map((x: any) => x.cid));
+        setFav(set.has(cid));
+      } catch {}
+    })();
+  }, [address, cid]);
 
   const productData = useReadContract({
     address: MARKETPLACE_ADDRESS as `0x${string}`,
@@ -58,6 +71,14 @@ export default function ProductDetail() {
   const exists = (productData?.data as any)?.[2] as boolean | undefined;
   const alreadyOwned = hasAccess?.data as boolean;
   const isLoadingPrice = productData?.isLoading;
+
+  useEffect(() => {
+    (async () => {
+      if (isSuccess && address && cid) {
+        try { await fetch('/api/purchases', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ address, cid, txHash }) }); } catch {}
+      }
+    })();
+  }, [isSuccess, address, cid, txHash]);
 
   async function handleBuy() {
     if (!cid || priceWei === undefined || !isConnected) return;
@@ -105,6 +126,23 @@ export default function ProductDetail() {
     }
   }
 
+  async function toggleFav() {
+    if (!address || !cid) return;
+    try {
+      if (!fav) {
+        const message = `fav:add:${cid}`;
+        const signature = await (window as any).ethereum?.request({ method: "personal_sign", params: [message, address] });
+        await fetch("/api/favorites", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ address, cid, signature }) });
+        setFav(true);
+      } else {
+        const message = `fav:del:${cid}`;
+        const signature = await (window as any).ethereum?.request({ method: "personal_sign", params: [message, address] });
+        await fetch("/api/favorites", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ address, cid, signature }) });
+        setFav(false);
+      }
+    } catch {}
+  }
+
   if (!cid) return <div className="max-w-7xl mx-auto px-6 py-12">Invalid product</div>;
 
   const networkName = (process.env.NEXT_PUBLIC_CHAIN || "amoy").toLowerCase() === "polygon" ? "Polygon Mainnet" : "Polygon Amoy";
@@ -120,7 +158,7 @@ export default function ProductDetail() {
 
       <div className="grid md:grid-cols-2 gap-12">
         <div>
-          <div className="aspect-square bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-2xl flex items-center justify-center text-9xl mb-6 overflow-hidden shadow-xl">
+          <div className="aspect-square bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-2xl flex items-center justify-center text-9xl mb-6 overflow-hidden shadow-xl relative">
             {metadata?.imageCid ? (
               <img 
                 src={`https://gateway.lighthouse.storage/ipfs/${metadata.imageCid}`} 
@@ -130,6 +168,9 @@ export default function ProductDetail() {
             ) : (
               <span>📄</span>
             )}
+            <button onClick={toggleFav} className="absolute top-3 right-3 rounded-full bg-white/80 px-4 py-1 text-sm">
+              {fav ? "★ Saved" : "☆ Save"}
+            </button>
           </div>
           <Card>
             <div className="flex items-center justify-between mb-4">
