@@ -2,28 +2,59 @@ import { createPublicClient, http, verifyMessage } from "viem";
 import { polygonAmoy, polygon } from "viem/chains";
 import { marketplaceAbi, MARKETPLACE_ADDRESS } from "@/lib/contracts";
 import { getDb } from "@/lib/db";
-import crypto from "crypto";
 
 function getChain() {
-	const net = (process.env.NEXT_PUBLIC_CHAIN || "amoy").toLowerCase();
+	const net = (((globalThis as any).process?.env?.NEXT_PUBLIC_CHAIN) || "amoy").toLowerCase();
 	return net === "polygon" || net === "mainnet" ? polygon : polygonAmoy;
 }
 
-async function decryptIfNeeded(cid: string, data: Buffer) {
+function b64ToBytes(b64: string): Uint8Array {
+	const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+	const lookup = new Uint8Array(256);
+	for (let i = 0; i < alphabet.length; i++) lookup[alphabet.charCodeAt(i)] = i;
+	let padding = 0;
+	if (b64.endsWith("==")) padding = 2; else if (b64.endsWith("=")) padding = 1;
+	const len = b64.length;
+	const outLen = ((len / 4) * 3) - padding;
+	const bytes = new Uint8Array(outLen);
+	let o = 0;
+	for (let i = 0; i < len; i += 4) {
+		const c1 = lookup[b64.charCodeAt(i)];
+		const c2 = lookup[b64.charCodeAt(i + 1)];
+		const c3 = lookup[b64.charCodeAt(i + 2)];
+		const c4 = lookup[b64.charCodeAt(i + 3)];
+		const triple = (c1 << 18) | (c2 << 12) | ((c3 & 63) << 6) | (c4 & 63);
+		if (o < outLen) bytes[o++] = (triple >> 16) & 0xff;
+		if (o < outLen) bytes[o++] = (triple >> 8) & 0xff;
+		if (o < outLen) bytes[o++] = triple & 0xff;
+	}
+	return bytes;
+}
+
+function ensureArrayBuffer(ab: ArrayBuffer | SharedArrayBuffer): ArrayBuffer {
+	if (ab instanceof ArrayBuffer) return ab;
+	const view = new Uint8Array(ab as any);
+	const copy = new Uint8Array(view.length);
+	copy.set(view);
+	return copy.buffer;
+}
+
+async function decryptIfNeeded(cid: string, data: ArrayBuffer) {
 	const db = await getDb();
 	const keyDoc = await db.collection("keys").findOne({ cid });
 	if (!keyDoc) return data; // not encrypted
 	if (keyDoc.alg !== "aes-256-gcm") return data;
-	const key = Buffer.from(String(keyDoc.keyB64), "base64");
-	const iv = Buffer.from(String(keyDoc.ivB64), "base64");
-	// last 16 bytes are GCM tag
-	if (data.length < 17) return data;
-	const body = data.subarray(0, data.length - 16);
-	const tag = data.subarray(data.length - 16);
-	const decipher = crypto.createDecipheriv("aes-256-gcm", key, iv);
-	decipher.setAuthTag(tag);
-	const dec = Buffer.concat([decipher.update(body), decipher.final()]);
-	return dec;
+	const keyBytes = b64ToBytes(String(keyDoc.keyB64));
+	const ivBytes = b64ToBytes(String(keyDoc.ivB64));
+	const subtle = (globalThis as any).crypto?.subtle;
+	if (!subtle) return data;
+	const cryptoKey = await subtle.importKey("raw", keyBytes, { name: "AES-GCM" }, false, ["decrypt"]);
+	try {
+		const dec = await subtle.decrypt({ name: "AES-GCM", iv: ivBytes, tagLength: 128 }, cryptoKey, data);
+		return dec;
+	} catch {
+		return data;
+	}
 }
 
 export async function POST(req: Request, { params }: any): Promise<Response> {
@@ -52,12 +83,11 @@ export async function POST(req: Request, { params }: any): Promise<Response> {
 	const resp = await fetch(gatewayUrl);
 	if (!resp.ok) return new Response("Fetch failed", { status: 502 });
 	const arrBuf = await resp.arrayBuffer();
-	const encBuf = Buffer.from(arrBuf);
-	const decBuf = await decryptIfNeeded(cid, encBuf);
+	const decAb = await decryptIfNeeded(cid, arrBuf);
 
 	const fileName = `${cid}`;
-	const blob = new Blob([decBuf], { type: "application/octet-stream" });
-	return new Response(blob, {
+	const finalized = ensureArrayBuffer(decAb as ArrayBuffer | SharedArrayBuffer);
+	return new Response(finalized, {
 		headers: {
 			"Content-Type": "application/octet-stream",
 			"Content-Disposition": `attachment; filename="${fileName}"`
