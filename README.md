@@ -57,6 +57,47 @@ Notes & next steps for production
 - Use a secure storage provider and ensure server-side upload endpoints keep keys secret.
 - Consider adding end-to-end tests for purchase and download flows and automated contract verification on the desired network.
 
+## Wave-2 Updates
+
+This release focuses on security, UX polish, and utility features requested by judges.
+
+- Encrypted uploads (AES‑256‑GCM): Files are encrypted server-side before IPFS upload and decrypted only after on-chain access verification.
+- Secure downloads: Server verifies a wallet signature and `hasBuyerAccess` on-chain, then streams the decrypted file.
+- Recommendations: New API suggests related items by category/name and renders a "You may also like" section on product pages.
+- Favorites: Users can save products using a signed message (no centralized passwords required); favorites are stored per wallet address.
+- Purchase history: Purchases are logged post-transaction for quick history in the buyer dashboard.
+- Authentication pages: Minimal email/password signup and login pages to complement wallet flows (for non-web3 features like chatbot or account email).
+- Network toggle: Use `NEXT_PUBLIC_CHAIN` to switch between Amoy testnet and Polygon mainnet.
+- UI polish: Better status messages, save buttons, network and security indicators on product detail pages.
+
+### New/Updated Environment Variables
+
+- `NEXT_PUBLIC_CHAIN` = `amoy` | `polygon`
+- `LIGHTHOUSE_API_KEY` (or `NEXT_PUBLIC_LIGHTHOUSE_API_KEY`) — IPFS provider key
+- `MONGODB_URI`, `MONGODB_DB` — MongoDB for metadata, keys, favorites, purchases
+- `NEXT_PUBLIC_MARKETPLACE_ADDRESS` — Deployed contract address
+- `GEMINI_API_KEY` — Optional for chatbot
+- `JWT_SECRET` — For email/password auth cookies
+
+### New API Routes
+
+- `POST /api/upload` — now encrypts file, uploads encrypted bytes, stores key/iv
+- `POST /api/download/[cid]` — signature + on-chain access check + server-side decrypt
+- `GET /api/products/recommendations` — basic related products
+- `GET|POST|DELETE /api/favorites` — save/unsave/list favorites per wallet
+- `GET|POST /api/purchases` — purchase history records
+
+### Frontend Enhancements
+
+- Product page: Save button, security/network indicators, related items
+- Product cards: Save toggle and proper image rendering from Lighthouse
+- Buyer dashboard: Real purchase history list
+- Auth pages: `/auth/signup` and `/auth/login`
+
+Deployment tips:
+- Ensure your MongoDB is publicly reachable by your host (do not use localhost URIs in serverless)
+- Set `NEXT_PUBLIC_MARKETPLACE_ADDRESS` to your deployed contract
+- For mainnet, set `NEXT_PUBLIC_CHAIN=polygon` and verify RPC provider limits
 
 
 e
