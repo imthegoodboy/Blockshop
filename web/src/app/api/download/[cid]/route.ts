@@ -56,7 +56,8 @@ export async function POST(req: Request, { params }: any): Promise<Response> {
 	const decBuf = await decryptIfNeeded(cid, encBuf);
 
 	const fileName = `${cid}`;
-	return new Response(decBuf, {
+	const blob = new Blob([decBuf], { type: "application/octet-stream" });
+	return new Response(blob, {
 		headers: {
 			"Content-Type": "application/octet-stream",
 			"Content-Disposition": `attachment; filename="${fileName}"`

@@ -59,6 +59,16 @@ export default function Home() {
         </div>
       </div>
 
+      <div className="bg-purple-50 border-y border-purple-200">
+        <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-center gap-2 text-sm">
+          <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-purple-200">
+            <span>🔷</span>
+            <strong>Built on Polygon</strong>
+          </span>
+          <span className="text-purple-700">Low fees, fast finality, eco‑friendly</span>
+        </div>
+      </div>
+
       <div className="max-w-7xl mx-auto px-6 py-12">
         <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
           <h2 className="text-3xl font-bold">Featured Products</h2>
