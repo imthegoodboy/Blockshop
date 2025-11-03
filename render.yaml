@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: Blockshop-web
+    env: node
+    repo: .
+    branch: main
+    plan: free
+    buildCommand: cd web && npm ci && npm run build
+    startCommand: cd web && npm run start
+    envVars: []
+    mountPoints: []
+    autoDeploy: true

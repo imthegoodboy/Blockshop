@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "builds": [{ "src": "web/package.json", "use": "@vercel/next" }],
+  "github": {
+    "silent": true,
+    "autoJobCancelation": true,
+    "installCommand": "cd web && npm install",
+    "buildCommand": "cd web && npm run build"
+  }
+}
