@@ -46,7 +46,7 @@ export default function SellerDashboard() {
   async function handleUpload() {
     if (!file || !address) return;
     setUploading(true);
-    setStatus("Uploading product file to IPFS...");
+    setStatus("Encrypting file and uploading to IPFS...");
     
     try {
       // Upload product file
@@ -95,7 +95,7 @@ export default function SellerDashboard() {
         }
       }
 
-      setStatus(`Uploaded! Saving to database...`);
+      setStatus(`Saving metadata...`);
 
       await fetch("/api/products", {
         method: "POST",

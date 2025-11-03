@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { Button, Card, Badge } from "@/components/ui";
 import { MARKETPLACE_ADDRESS, marketplaceAbi } from "@/lib/contracts";
+import ProductCard from "@/components/ProductCard";
 
 export default function ProductDetail() {
   const params = useParams();
@@ -12,6 +13,7 @@ export default function ProductDetail() {
   const { address, isConnected } = useAccount();
   const [metadata, setMetadata] = useState<any>(null);
   const [downloading, setDownloading] = useState(false);
+  const [recs, setRecs] = useState<any[]>([]);
 
   useEffect(() => {
     if (!cid) return;
@@ -20,7 +22,13 @@ export default function ProductDetail() {
         const res = await fetch(`/api/products?cid=${cid}`);
         const json = await res.json();
         if (json.items && json.items.length > 0) {
-          setMetadata(json.items[0]);
+          const m = json.items[0];
+          setMetadata(m);
+          try {
+            const r = await fetch(`/api/products/recommendations?cid=${cid}&category=${encodeURIComponent(m.category || "")}&q=${encodeURIComponent(m.name || "")}`);
+            const j = await r.json();
+            setRecs(j.items || []);
+          } catch {}
         }
       } catch {}
     })();
@@ -71,13 +79,11 @@ export default function ProductDetail() {
         method: "personal_sign",
         params: [message, address]
       });
-      
       const res = await fetch(`/api/download/${cid}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ address, signature })
       });
-      
       if (res.ok) {
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
@@ -100,6 +106,8 @@ export default function ProductDetail() {
   }
 
   if (!cid) return <div className="max-w-7xl mx-auto px-6 py-12">Invalid product</div>;
+
+  const networkName = (process.env.NEXT_PUBLIC_CHAIN || "amoy").toLowerCase() === "polygon" ? "Polygon Mainnet" : "Polygon Amoy";
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-8">
@@ -140,11 +148,11 @@ export default function ProductDetail() {
               </div>
               <div className="flex justify-between">
                 <span style={{ color: 'var(--text-muted)' }}>Network:</span>
-                <span className="font-semibold">Polygon Amoy</span>
+                <span className="font-semibold">{networkName}</span>
               </div>
               <div className="flex justify-between">
-                <span style={{ color: 'var(--text-muted)' }}>Size:</span>
-                <span>{metadata?.size ? Math.ceil(metadata.size / 1024) + " KB" : "Unknown"}</span>
+                <span style={{ color: 'var(--text-muted)' }}>Security:</span>
+                <span>End-to-end encrypted at rest (AES‑GCM)</span>
               </div>
               <div className="flex justify-between">
                 <span style={{ color: 'var(--text-muted)' }}>Storage:</span>
@@ -205,7 +213,7 @@ export default function ProductDetail() {
                 {downloading ? "Downloading..." : "⬇️ Download Now"}
               </Button>
               <p className="text-sm text-center mt-3" style={{ color: 'var(--text-muted)' }}>
-                You can download this product once
+                Your download is protected and verified on-chain
               </p>
             </div>
           ) : !isConnected ? (
@@ -243,6 +251,17 @@ export default function ProductDetail() {
           )}
         </div>
       </div>
+
+      {recs.length > 0 && (
+        <div className="mt-12">
+          <h3 className="text-xl font-semibold mb-4">You may also like</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {recs.map((p) => (
+              <ProductCard key={p.cid} product={p} />)
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

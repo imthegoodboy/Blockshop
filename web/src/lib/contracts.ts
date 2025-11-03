@@ -18,7 +18,10 @@ export const marketplaceAbi = [
 		{ "internalType": "bool", "name": "exists", "type": "bool" }
 	], "stateMutability": "view", "type": "function" },
 	{ "inputs": [{ "internalType": "string", "name": "ipfsCid", "type": "string" }, { "internalType": "uint256", "name": "priceWei", "type": "uint256" }], "name": "listProduct", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
-	{ "inputs": [{ "internalType": "string", "name": "ipfsCid", "type": "string" }], "name": "hasBuyerAccess", "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }], "stateMutability": "view", "type": "function" },
+	{ "inputs": [
+		{ "internalType": "address", "name": "buyer", "type": "address" },
+		{ "internalType": "string", "name": "ipfsCid", "type": "string" }
+	], "name": "hasBuyerAccess", "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }], "stateMutability": "view", "type": "function" },
 	{ "inputs": [{ "internalType": "string", "name": "ipfsCid", "type": "string" }], "name": "purchase", "outputs": [], "stateMutability": "payable", "type": "function" }
 ];
 
